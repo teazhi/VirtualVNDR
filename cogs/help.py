@@ -2,26 +2,7 @@ import discord
 from discord.ext import commands
 from discord.errors import Forbidden
 
-"""This custom help command is a perfect replacement for the default one on any Discord Bot written in Discord.py!
-However, you must put "bot.remove_command('help')" in your bot, and the command must be in a cog for it to work.
-Original concept by Jared Newsom (AKA Jared M.F.)
-[Deleted] https://gist.github.com/StudioMFTechnologies/ad41bfd32b2379ccffe90b0e34128b8b
-Rewritten and optimized by github.com/nonchris
-https://gist.github.com/nonchris/1c7060a14a9d94e7929aa2ef14c41bc2
-You need to set three variables to make that cog run.
-Have a look at line 51 to 57
-"""
-
-
 async def send_embed(ctx, embed):
-    """
-    Function that handles the sending of embeds
-    -> Takes context and embed to send
-    - tries to send embed in channel
-    - tries to send normal message when that fails
-    - tries to send embed private with information abot missing permissions
-    If this all fails: https://youtu.be/dQw4w9WgXcQ
-    """
     try:
         await ctx.send(embed=embed)
     except Forbidden:
@@ -35,7 +16,6 @@ async def send_embed(ctx, embed):
 
 class Help(commands.Cog):
     """ | Help Command"""
-    
 
     def __init__(self, bot):
         self.bot = bot
@@ -45,13 +25,11 @@ class Help(commands.Cog):
     async def help(self, ctx, *input):
         """Shows all modules of that bot"""
 	
-	# !SET THOSE VARIABLES TO MAKE THE COG FUNCTIONAL!
-        prefix = "?"# ENTER YOUR PREFIX - loaded from config, as string or how ever you want!
-        version = "v1.0" # enter version of your code
+        prefix = "?"
+        version = "v1.0"
         
-        # setting owner name - if you don't wanna be mentioned remove line 49-60 and adjust help text (line 88) 
-        owner = "853288012851314729"	# ENTER YOU DISCORD-ID
-        owner_name = "teazhi#7831"	# ENTER YOUR USERNAME#1234
+        owner = "853288012851314729"
+        owner_name = "teazhi#7831"
 
         # checks if cog parameter was given
         # if not: sending all modules and commands not associated with a cog
@@ -64,7 +42,7 @@ class Help(commands.Cog):
                 owner = owner
 
             # starting to build embed
-            emb = discord.Embed(title='All Commands', color=discord.Color.blue(),
+            emb = discord.Embed(title='All Modules', color=discord.Color.blue(),
                                 description=f'Use `{prefix}help <module>` to gain more information about that module '
                                             f':smiley:\n')
 
@@ -74,7 +52,7 @@ class Help(commands.Cog):
                 cogs_desc += f'`{cog}` {self.bot.cogs[cog].__doc__}\n'
 
             # adding 'list' of cogs to embed
-            emb.add_field(name='Commands', value=cogs_desc, inline=False)
+            emb.add_field(name='Modules', value=cogs_desc, inline=False)
 
             # integrating trough uncategorized commands
             commands_desc = ''

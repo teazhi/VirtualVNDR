@@ -3,8 +3,9 @@ import os
 from dotenv import load_dotenv
 from discord.ext import commands
 
+command_prefix = "?"
+
 def main():
-    command_prefix = "?"
     client = commands.Bot(command_prefix, intents=discord.Intents.all())
     client.remove_command('help')
 

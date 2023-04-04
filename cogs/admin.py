@@ -1,5 +1,6 @@
 import os
 from discord.ext import commands
+from bot import command_prefix
 
 class Admin(commands.Cog, name="Admin"):
     def __init__(self, bot: commands.Bot):
@@ -7,8 +8,6 @@ class Admin(commands.Cog, name="Admin"):
 
     @commands.command()
     async def reload(self, ctx: commands.Context, cog = None):
-        command_prefix = "?"
-
         if cog is None:
             await ctx.send(f"Please provide a module to reload. \nUsage: {command_prefix}reload [MODULE]")
         else:
@@ -22,8 +21,6 @@ class Admin(commands.Cog, name="Admin"):
     
     @commands.command()
     async def load(self, ctx: commands.Context, cog = None):
-        command_prefix = "?"
-
         if cog is None:
             await ctx.send(f"Please provide a module to load. \nUsage: {command_prefix}load [MODULE]")
         else:
@@ -37,8 +34,6 @@ class Admin(commands.Cog, name="Admin"):
 
     @commands.command()
     async def unload(self, ctx: commands.Context, cog = None):
-        command_prefix = "?"
-
         if cog is None:
             await ctx.send(f"Please provide a command category to unload. \nUsage: {command_prefix}unload [MODULE]")
         else:
