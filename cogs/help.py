@@ -1,10 +1,11 @@
 import discord
 from discord.ext import commands
 from discord.errors import Forbidden
+from bot import command_prefix
 
 async def send_embed(ctx, embed):
     try:
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, ephemeral=True)
     except Forbidden:
         try:
             await ctx.send("Hey, seems like I can't send embeds. Please check my permissions :)")
@@ -24,8 +25,6 @@ class Help(commands.Cog):
     # @commands.bot_has_permissions(add_reactions=True,embed_links=True)
     async def help(self, ctx, *input):
         """Shows all modules of that bot"""
-	
-        prefix = "?"
         version = "v1.0"
         
         owner = "853288012851314729"
@@ -43,7 +42,8 @@ class Help(commands.Cog):
 
             # starting to build embed
             emb = discord.Embed(title='All Modules', color=discord.Color.blue(),
-                                description=f'Use `{prefix}help <module>` to gain more information about that module '
+                                description=f'Commands in the server start with `{command_prefix}`\n\
+                                            Use `{command_prefix}help <module>` to find commands under that module '
                                             f':smiley:\n')
 
             # iterating trough cogs, gathering descriptions
@@ -67,8 +67,10 @@ class Help(commands.Cog):
                 emb.add_field(name='Not belonging to a module', value=commands_desc, inline=False)
 
             # setting information about author
-            emb.add_field(name="About", value=f"A multi-purpose discord bot revolutionizing ecommerce.\n\
-                                    {self.bot.user.display_name} is being developed by {owner_name}.")
+            emb.add_field(name="About", value=f"Meet TEAZHI, the multi-purpose ecommerce Discord bot revolutionizing online shopping. Shop directly\
+                                                in the server with automated services and real-time customer support, making online shopping easier\
+                                                and more efficient than ever before.\n\
+                                                \n{self.bot.user.display_name} is being developed by {owner_name}.")
             emb.set_footer(text=f"Bot is running {version}")
 
         # block called when one cog-name is given
@@ -79,16 +81,21 @@ class Help(commands.Cog):
             for cog in self.bot.cogs:
                 # check if cog is the matching one
                 if cog.lower() == input[0].lower():
+                    if cog.lower() == "admin":
+                        if not ctx.author.guild_permissions.administrator:
+                            emb = discord.Embed(title=f'ERROR', description="Sorry {}, you do not have permissions to do that!".format(ctx.message.author),
+                                        color=discord.Color.red())
+                            break
 
                     # making title - getting description from doc-string below class
-                    emb = discord.Embed(title=f'{cog} - Commands', description=self.bot.cogs[cog].__doc__,
+                    emb = discord.Embed(title=f'{cog} - Commands', description=self.bot.cogs[cog].__doc__[2:],
                                         color=discord.Color.green())
 
                     # getting commands from cog
                     for command in self.bot.get_cog(cog).get_commands():
                         # if cog is not hidden
                         if not command.hidden:
-                            emb.add_field(name=f"`{prefix}{command.name}`", value=command.help, inline=False)
+                            emb.add_field(name=f"`{command_prefix}{command.name}`", value=command.help, inline=False)
                     # found cog - breaking loop
                     break
 
