@@ -1,10 +1,13 @@
 import discord
 from discord.ext import commands
 from discord.errors import Forbidden
-from bot import command_prefix
+import config
+import datetime
 
-async def send_embed(ctx, embed):
+async def send_embed(self, ctx, embed):
     try:
+        embed.timestamp = datetime.datetime.now()
+        embed.set_footer(text=f'{self.bot.user.display_name} {config.BOT_VERSION} is in development by {config.OWNER_NAME}', icon_url=config.LOGO_URL)
         await ctx.send(embed=embed, ephemeral=True)
     except Forbidden:
         try:
@@ -16,7 +19,7 @@ async def send_embed(ctx, embed):
 
 
 class Help(commands.Cog):
-    """ | Help Command"""
+    """ | Display help information about the bot"""
 
     def __init__(self, bot):
         self.bot = bot
@@ -25,30 +28,27 @@ class Help(commands.Cog):
     # @commands.bot_has_permissions(add_reactions=True,embed_links=True)
     async def help(self, ctx, *input):
         """Shows all modules of that bot"""
-        version = "v1.0"
-        
-        owner = "853288012851314729"
-        owner_name = "teazhi#7831"
-
         # checks if cog parameter was given
         # if not: sending all modules and commands not associated with a cog
         if not input:
             # checks if owner is on this server - used to 'tag' owner
             try:
-                owner = ctx.guild.get_member(owner).mention
+                config.OWNER_ID = ctx.guild.get_member(config.OWNER_ID).mention
 
             except AttributeError as e:
-                owner = owner
+                config.OWNER_ID = config.OWNER_ID
 
             # starting to build embed
-            emb = discord.Embed(title='All Modules', color=discord.Color.blue(),
-                                description=f'Commands in the server start with `{command_prefix}`\n\
-                                            Use `{command_prefix}help <module>` to find commands under that module '
+            emb = discord.Embed(title=f'{ctx.guild.name} - Server', color=discord.Color.from_rgb(210, 43, 43),
+                                description=f'Commands in the server start with `{config.PREFIX}`\n\
+                                            Use `{config.PREFIX}help <module>` to find commands under that module '
                                             f':smiley:\n')
 
             # iterating trough cogs, gathering descriptions
             cogs_desc = ''
             for cog in self.bot.cogs:
+                if cog == "Admin":
+                    continue
                 cogs_desc += f'`{cog}` {self.bot.cogs[cog].__doc__}\n'
 
             # adding 'list' of cogs to embed
@@ -69,9 +69,11 @@ class Help(commands.Cog):
             # setting information about author
             emb.add_field(name="About", value=f"Meet TEAZHI, the multi-purpose ecommerce Discord bot revolutionizing online shopping. Shop directly\
                                                 in the server with automated services and real-time customer support, making online shopping easier\
-                                                and more efficient than ever before.\n\
-                                                \n{self.bot.user.display_name} is being developed by {owner_name}.")
-            emb.set_footer(text=f"Bot is running {version}")
+                                                and more efficient than ever before.")
+            
+            emb.add_field(name="", value="", inline=False)
+            emb.add_field(name="", value="**[[GitHub](https://github.com/teazhi/TEAZHI_Bot)]** ✦ **[[Website](https://www.teazhitz.com)]**", inline=False)
+            # emb.add_field(name="", value="", inline=True)
 
         # block called when one cog-name is given
         # trying to find matching cog and it's commands
@@ -89,40 +91,41 @@ class Help(commands.Cog):
 
                     # making title - getting description from doc-string below class
                     emb = discord.Embed(title=f'{cog} - Commands', description=self.bot.cogs[cog].__doc__[2:],
-                                        color=discord.Color.green())
+                                        color=discord.Color.from_rgb(210, 43, 43))
 
                     # getting commands from cog
                     for command in self.bot.get_cog(cog).get_commands():
                         # if cog is not hidden
                         if not command.hidden:
-                            emb.add_field(name=f"`{command_prefix}{command.name}`", value=command.help, inline=False)
+                            if command.usage is None:
+                                command.usage = ""
+                            emb.add_field(name=f"`{config.PREFIX}{command.name}{command.usage}`", value=f" - {command.description}", inline=False)
                     # found cog - breaking loop
                     break
 
             # if input not found
             # yes, for-loops have an else statement, it's called when no 'break' was issued
             else:
-                emb = discord.Embed(title="What's that?!",
-                                    description=f"I've never heard from a module called `{input[0]}` before :scream:",
+                emb = discord.Embed(title="Invalid Module",
+                                    description=f"I've never heard of a module called `{input[0]}` before :thinking:",
                                     color=discord.Color.orange())
 
         # too many cogs requested - only one at a time allowed
         elif len(input) > 1:
-            emb = discord.Embed(title="That's too much.",
-                                description="Please request only one module at once :sweat_smile:",
+            emb = discord.Embed(title="Invalid number of arguments",
+                                description="Please request only one module at a time :sweat_smile:",
                                 color=discord.Color.orange())
 
         else:
             emb = discord.Embed(title="It's a magical place.",
                                 description="I don't know how you got here. But I didn't see this coming at all.\n"
-                                            "Would you please be so kind to report that issue to me on github?\n"
-                                            "https://github.com/nonchris/discord-fury/issues\n"
-                                            "Thank you! ~Chris",
+                                            "Would you please be so kind to report that issue to me on discord?\n"
+                                            "Discord: teazhi#7831\n"
+                                            "Thank you! ~teazhi",
                                 color=discord.Color.red())
 
         # sending reply embed using our own function defined above
-        await send_embed(ctx, emb)
-
+        await send_embed(self, ctx, emb)
 
 async def setup(bot):
     await bot.add_cog(Help(bot))

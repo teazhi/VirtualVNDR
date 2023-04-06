@@ -2,67 +2,89 @@ import os
 import discord
 from discord.ext import commands
 from discord.ext.commands import has_permissions, MissingPermissions
-from bot import command_prefix
+import config
 
 class Admin(commands.Cog, name="Admin"):
     """ | \
-        Admin Commands"""
+        List of all admin commands available"""
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(description="Reload all modules")
     @has_permissions(administrator=True)
     async def reloadall(self, ctx: commands.Context, cog = None):
         if cog is not None:
-            await ctx.send(f"Please use `{command_prefix}reload [MODULE]` to reload a specific module.")
+            emb = discord.Embed(title=f'ERROR', description=f"Please use `{config.PREFIX}reload [MODULE]` to reload a specific module.",
+                                        color=discord.Color.red())
+            await ctx.send(embed=emb)
         else:
             for cog in self.bot.cogs:
                 cog = cog.lower()
                 await self.bot.reload_extension(f"cogs.{cog}")
-            await ctx.send(f"All modules and commands have been reloaded successfully. ✅")
+            emb = discord.Embed(title=f'Success', description=f"All modules and commands have been reloaded successfully. ✅",
+                                        color=discord.Color.green())
+            await ctx.send(embed=emb)
 
-    @commands.command()
+    @commands.command(description="Reload a given module", usage=" [MODULE]")
     @has_permissions(administrator=True)
     async def reload(self, ctx: commands.Context, cog = None):
         if cog is None:
-            await ctx.send(f"Please provide a module to reload. \nUsage: {command_prefix}reload [MODULE]")
+            emb = discord.Embed(title=f'ERROR', description=f"Please provide a module to reload. \n\n`Usage: {config.PREFIX}reload [MODULE]`",
+                                        color=discord.Color.red())
+            await ctx.send(embed=emb)
         else:
             cog = str(cog).capitalize()
             if cog in self.bot.cogs:
                 cog = cog.lower()
                 await self.bot.reload_extension(f"cogs.{cog}")
-                await ctx.send(f"All [{cog}] commands have been reloaded successfully. ✅")
+                emb = discord.Embed(title=f'Success', description=f"All [{cog}] commands have been reloaded successfully. ✅",
+                                        color=discord.Color.green())
+                await ctx.send(embed=emb)
             else:
-                await ctx.send(f"Please provide a valid module to reload.") 
+                emb = discord.Embed(title=f'ERROR', description=f"Please provide a valid module to reload.",
+                                        color=discord.Color.red())
+                await ctx.send(embed=emb) 
     
-    @commands.command()
+    @commands.command(description="Load in a given module", usage=" [MODULE]")
     @has_permissions(administrator=True)
     async def load(self, ctx: commands.Context, cog = None):
         if cog is None:
-            await ctx.send(f"Please provide a module to load. \nUsage: {command_prefix}load [MODULE]")
+            emb = discord.Embed(title=f'ERROR', description=f"Please provide a module to load. \n\n`Usage: {config.PREFIX}load [MODULE]`",
+                                        color=discord.Color.red())
+            await ctx.send(embed=emb)
         else:
             cog = str(cog).capitalize()
             if cog in self.bot.cogs:
                 cog = cog.lower()
                 await self.bot.load_extension(f"cogs.{cog}")
-                await ctx.send(f"All [{cog}] commands have been loaded successfully. ✅")
+                emb = discord.Embed(title=f'Success', description=f"All [{cog}] commands have been reloaded successfully. ✅",
+                                        color=discord.Color.green())
+                await ctx.send(embed=emb)
             else:
-                await ctx.send(f"Please provide a valid module to load.") 
+                emb = discord.Embed(title=f'ERROR', description=f"Please provide a valid module to load.",
+                                        color=discord.Color.red())
+                await ctx.send(embed=emb) 
 
-    @commands.command()
+    @commands.command(description="Unload a given module", usage=" [MODULE]")
     @has_permissions(administrator=True)
     async def unload(self, ctx: commands.Context, cog = None):
         if cog is None:
-            await ctx.send(f"Please provide a command category to unload. \nUsage: {command_prefix}unload [MODULE]")
+            emb = discord.Embed(title=f'ERROR', description=f"Please provide a module to unload. \n\n`Usage: {config.PREFIX}unload [MODULE]`",
+                                        color=discord.Color.red())
+            await ctx.send(embed=emb)
         else:
             cog = str(cog).capitalize()
             if cog in self.bot.cogs:
                 cog = cog.lower()
                 await self.bot.unload_extension(f"cogs.{cog}")
-                await ctx.send(f"All [{cog}] commands have been unloaded successfully. ✅")
+                emb = discord.Embed(title=f'Success', description=f"All [{cog}] commands have been reloaded successfully. ✅",
+                                        color=discord.Color.green())
+                await ctx.send(embed=emb)
             else:
-                await ctx.send(f"Please provide a valid module to unload.") 
+                emb = discord.Embed(title=f'Error', description=f"Please provide a valid module to unload.",
+                                        color=discord.Color.red())
+                await ctx.send(embed=emb) 
 
     @reloadall.error
     @reload.error
@@ -72,7 +94,7 @@ class Admin(commands.Cog, name="Admin"):
         if isinstance(error, MissingPermissions):
             emb = discord.Embed(title=f'ERROR', description="Sorry {}, you do not have permissions to do that!".format(ctx.message.author),
                                         color=discord.Color.red())
-            await ctx.send(embed=emb, ephemeral=True)
+            await ctx.send(embed=emb)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Admin(bot))
