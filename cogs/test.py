@@ -1,6 +1,9 @@
+import os
 import discord
 from discord.ui import Select, View
 from discord.ext import commands
+import stripe
+from dotenv import load_dotenv
 
 class Test(commands.Cog, name="Test"):
     """ | Command for testing purposes"""
@@ -8,22 +11,18 @@ class Test(commands.Cog, name="Test"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    load_dotenv()
+
     @commands.command(description="Test dropdown menu")
-    async def testdropdown(self, ctx: commands.Context):
-        select = Select(options=[
-            discord.SelectOption(label="Day", emoji="☀️", description="Select day option"),
-            discord.SelectOption(label="Night", emoji="🌜", description="Select night option"),
-        ])
+    async def test(self, ctx: commands.Context):
+        stripe.api_key = os.getenv("STRIPE_API_KEY")
 
-        async def doSmthCallback(interation):
-            await interation.response.send_message(f"You chose: {select.values}")
-        
-        select.callback = doSmthCallback
+        customers = stripe.Customer.list()
 
-        view = View()
-        view.add_item(select)
-
-        await ctx.send("Choose an option", view=view)
+        if len(customers) == 0:
+            print("No customers")
+        else:
+            print("there are customers")
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Test(bot))
