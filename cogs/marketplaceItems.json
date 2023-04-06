@@ -1,1 +1,7 @@
-{}
+{
+    "PROD1": [
+        "Product #1",
+        "This is my first product test. It is just for testing.",
+        "2"
+    ]
+}

@@ -5,7 +5,7 @@ from discord.ext import commands
 import config
 
 def main():
-    client = commands.Bot(config.PREFIX, intents=discord.Intents.all())
+    client = commands.Bot(config.PREFIX, intents=discord.Intents.all(), status=discord.Status.dnd, activity=discord.Activity(type=discord.ActivityType.watching, name='teazhi work on marketplace'))
     client.remove_command('help')
 
     load_dotenv()
@@ -14,16 +14,8 @@ def main():
     async def on_ready():
         await client.wait_until_ready()
 
-        embed = discord.Embed(
-            title = "Status",
-            description = f"✅ {client.user.display_name} is online. ",
-            color = discord.Color.green()
-        )
-
-        await client.get_channel(int("1092683599796514826")).send(embed=embed)
-
         print("━━━━━━━━━━━━━━━━━━━━━━━")
-        print("TEAZHI is connected.")
+        print(f"{client.user} is connected.")
         print("━━━━━━━━━━━━━━━━━━━━━━━")
 
         # load cogs

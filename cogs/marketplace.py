@@ -79,6 +79,10 @@ class Marketplace(commands.Cog, name="Marketplace"):
                 return msg.author == ctx.author and msg.channel == ctx.channel
             try:
                 itemName = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+                itemName = str(itemName.content)
+
+                if itemName.lower() == 'cancel':
+                    return
             except asyncio.TimeoutError:
                 await ctx.send("Sorry, you didn't reply in time! Please try again, but reply within 30 seconds.")
                 return
@@ -87,6 +91,9 @@ class Marketplace(commands.Cog, name="Marketplace"):
 
             try:
                 itemDesc = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+                itemDesc = str(itemDesc.content)
+                if itemDesc.lower() == 'cancel':
+                    return
             except asyncio.TimeoutError:
                 await ctx.send("Sorry, you didn't reply in time! Please try again, but reply within 30 seconds.")
                 return
@@ -96,7 +103,10 @@ class Marketplace(commands.Cog, name="Marketplace"):
 
                 try:
                     itemQuantity = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                    if (str(itemQuantity.content)).isnumeric():
+                    itemQuantity = str(itemQuantity.content)
+                    if itemQuantity.lower() == 'cancel':
+                        return
+                    if itemQuantity.isnumeric():
                         break
                     else:
                         await ctx.send("Please provide a number.")
@@ -104,14 +114,6 @@ class Marketplace(commands.Cog, name="Marketplace"):
                 except asyncio.TimeoutError:
                     await ctx.send("Sorry, you didn't reply in time! Please try again, but reply within 30 seconds.")
                     return
-            
-            itemName = str(itemName.content)
-            itemDesc = str(itemDesc.content)
-            itemQuantity = str(itemQuantity.content)
-
-            if itemName.lower() == 'cancel' or itemDesc.lower() == 'cancel' or itemQuantity.lower() == 'cancel':
-                await ctx.send("Process has been terminated.")
-                return
             
             productDetails.append(itemName)
             productDetails.append(itemDesc)
