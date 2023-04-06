@@ -7,7 +7,7 @@ import datetime
 async def send_embed(self, ctx, embed):
     try:
         embed.timestamp = datetime.datetime.now()
-        embed.set_footer(text=f'{self.bot.user.display_name} {config.BOT_VERSION} is in development by {config.OWNER_NAME}', icon_url=config.LOGO_URL)
+        embed.set_footer(text=f'{self.bot.user.display_name} {config.BOT_VERSION} | by {config.OWNER_NAME}', icon_url=config.LOGO_URL)
         await ctx.send(embed=embed, ephemeral=True)
     except Forbidden:
         try:
@@ -85,8 +85,8 @@ class Help(commands.Cog):
                 if cog.lower() == input[0].lower():
                     if cog.lower() == "admin":
                         if not ctx.author.guild_permissions.administrator:
-                            emb = discord.Embed(title=f'ERROR', description="Sorry {}, you do not have permissions to do that!".format(ctx.message.author),
-                                        color=discord.Color.red())
+                            emb = discord.Embed(title=f'Error', description="Sorry {}, you do not have permissions to do that!".format(ctx.message.author),
+                                        color=config.ERROR_COLOR)
                             break
 
                     # making title - getting description from doc-string below class
@@ -122,7 +122,7 @@ class Help(commands.Cog):
                                             "Would you please be so kind to report that issue to me on discord?\n"
                                             "Discord: teazhi#7831\n"
                                             "Thank you! ~teazhi",
-                                color=discord.Color.red())
+                                color=config.ERROR_COLOR)
 
         # sending reply embed using our own function defined above
         await send_embed(self, ctx, emb)

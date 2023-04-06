@@ -5,7 +5,12 @@ from discord.ext import commands
 import config
 
 def main():
-    client = commands.Bot(config.PREFIX, intents=discord.Intents.all(), status=discord.Status.dnd, activity=discord.Activity(type=discord.ActivityType.watching, name='teazhi work on marketplace'))
+    client = commands.Bot(
+        config.PREFIX, 
+        intents=discord.Intents.all(), 
+        status=discord.Status.dnd, 
+        activity=discord.Activity(type=discord.ActivityType.watching, name='teazhi work on marketplace')
+    )
     client.remove_command('help')
 
     load_dotenv()

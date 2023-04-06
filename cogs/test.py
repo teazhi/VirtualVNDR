@@ -13,7 +13,7 @@ class Test(commands.Cog, name="Test"):
 
     load_dotenv()
 
-    @commands.command(description="Test dropdown menu")
+    @commands.command(description="Testing Stripe")
     async def test(self, ctx: commands.Context):
         stripe.api_key = os.getenv("STRIPE_API_KEY")
 
@@ -23,6 +23,8 @@ class Test(commands.Cog, name="Test"):
             print("No customers")
         else:
             print("there are customers")
+
+        
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Test(bot))
