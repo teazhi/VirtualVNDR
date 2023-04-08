@@ -6,8 +6,7 @@ import datetime
 
 async def send_embed(self, ctx, embed):
     try:
-        embed.timestamp = datetime.datetime.now()
-        embed.set_footer(text=f'{self.bot.user.display_name} {config.BOT_VERSION} | by {config.OWNER_NAME}', icon_url=config.LOGO_URL)
+        config.SET_EMBED_FOOTER(self,embed)
         await ctx.send(embed=embed, ephemeral=True)
     except Forbidden:
         try:
@@ -39,10 +38,12 @@ class Help(commands.Cog):
                 config.OWNER_ID = config.OWNER_ID
 
             # starting to build embed
-            emb = discord.Embed(title=f'{ctx.guild.name} - Server', color=discord.Color.from_rgb(210, 43, 43),
-                                description=f'Commands in the server start with `{config.PREFIX}`\n\
-                                            Use `{config.PREFIX}help <module>` to find commands under that module '
-                                            f':smiley:\n')
+            emb = discord.Embed(
+                title=f'{ctx.guild.name} - Server', color=discord.Color.from_rgb(210, 43, 43),
+                description=f'Commands in the server start with `{config.PREFIX}`\n\
+                            Use `{config.PREFIX}help <module>` to find commands under that module '
+                            f':smiley:\n'
+            )
 
             # iterating trough cogs, gathering descriptions
             cogs_desc = ''
@@ -72,6 +73,8 @@ class Help(commands.Cog):
                                                 and more efficient than ever before.")
             
             emb.add_field(name="", value="", inline=False)
+            
+            # REMOVE GITHUB LINK WHEN SHOWING THIS TO THE PUBLIC
             emb.add_field(name="", value="**[[GitHub](https://github.com/teazhi/TEAZHI_Bot)]** ✦ **[[Website](https://www.teazhitz.com)]**", inline=False)
             # emb.add_field(name="", value="", inline=True)
 

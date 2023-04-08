@@ -26,7 +26,7 @@ class Admin(commands.Cog, name="Admin"):
                                         color=config.SUCCESS_COLOR)
             await ctx.send(embed=emb)
 
-    @commands.command(description="Reload a given module", usage=" [MODULE]")
+    @commands.command(description="Reload a given module", usage=" [MODULE]", aliases=["rl"])
     @has_permissions(administrator=True)
     async def reload(self, ctx: commands.Context, cog = None):
         if cog is None:
