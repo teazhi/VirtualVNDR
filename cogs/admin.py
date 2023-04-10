@@ -92,7 +92,7 @@ class Admin(commands.Cog, name="Admin"):
     @unload.error
     async def admin_error(self, ctx, error):
         if isinstance(error, MissingPermissions):
-            emb = discord.Embed(title=f'Error', description="Sorry {}, you do not have permissions to do that!".format(ctx.message.author),
+            emb = discord.Embed(title=f'Sorry {ctx.message.author}!', description="You do not have permissions to do that.",
                                         color=config.ERROR_COLOR)
             await ctx.send(embed=emb)
 

@@ -5,6 +5,7 @@ import config
 import asyncio
 import datetime
 from discord.ui import Select, View
+from discord.ext.commands import has_permissions, MissingPermissions
 import json
 import stripe
 from dotenv import load_dotenv
@@ -21,7 +22,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
         if os.path.getsize(pathToFile) > 0:
             with open(pathToFile) as fp:
                 return json.load(fp)
-
+    
     # ——————————————————————————————————————
     # SHOP COMMAND
     # ——————————————————————————————————————
@@ -76,12 +77,13 @@ class Marketplace(commands.Cog, name="Marketplace"):
             await ctx.send(embed=mpEmbed)
             await ctx.send(embed=emb, view=view)
         else:
-            await ctx.send(embed=emb)
+            await ctx.send(embed=mpEmbed)
 
     # ——————————————————————————————————————
     # ADDPRODUCT COMMAND
     # ——————————————————————————————————————
     @commands.command(description="Add a product to the marketplace", usage=" [PROD_ID]", aliases=["ap"])
+    @has_permissions(administrator=True)
     async def addproduct(self, ctx: commands.Context, productID = None, *arg):
         if len(arg) > 0:
             embed = discord.Embed(
@@ -140,7 +142,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
             productNumber = len(mpItems)
             embed.add_field(
                 name="",
-                value=f"`Inventory Item #: {productNumber}`",
+                value=f"`Updated!\nItems in Inventory: {productNumber}`",
                 inline=False
             )
 
@@ -340,6 +342,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
     # REMOVEPRODUCT COMMAND
     # ——————————————————————————————————————
     @commands.command(description="Remove a product from the marketplace", usage=" [PROD_ID]", aliases=["rp"])
+    @has_permissions(administrator=True)
     async def removeproduct(self, ctx: commands.Context, productID = None, *arg):
         MPFILEPATH = os.path.join(os.path.dirname(__file__), 'marketplaceItems.json')
 
@@ -396,6 +399,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
     # LISTPRODUCTIDS COMMAND
     # ——————————————————————————————————————
     @commands.command(description="List all products and their IDs", aliases=["lpids"])
+    @has_permissions(administrator=True)
     async def listproductids(self, ctx: commands.Context):
         MPFILEPATH = os.path.join(os.path.dirname(__file__), 'marketplaceItems.json')
         mpItems = self.load_mpItems(MPFILEPATH)
@@ -405,12 +409,49 @@ class Marketplace(commands.Cog, name="Marketplace"):
             color=config.MAIN_COLOR
         )
 
-        for product in mpItems:
-            productname = mpItems[product][0]
-            embed.add_field(name=f"{productname} - `ID: {product}`", value="", inline=False)
+        if len(mpItems) > 0:
+            for product in mpItems:
+                productname = mpItems[product][0]
+                embed.add_field(name=f"{productname} - `ID: {product}`", value="", inline=False)
+        else:
+            embed.add_field(name="", value=f"There are no products in your marketplace.\n\nAdd a product using: `{config.PREFIX}addproduct [PROD_ID]`", inline=False)
 
         config.SET_EMBED_FOOTER(self, embed)
         await ctx.send(embed=embed)
+    
+    # ——————————————————————————————————————
+    # LISTARCHIVED COMMAND
+    # ——————————————————————————————————————
+    @commands.command(description="List all products and their IDs", aliases=["larchived"])
+    @has_permissions(administrator=True)
+    async def listarchived(self, ctx: commands.Context):
+        stripe.api_key = os.getenv("STRIPE_API_KEY")
+
+        embed = discord.Embed(
+            title=f"Archived Products", description="",
+            color=config.MAIN_COLOR
+        )
+
+        if len(stripe.Product.list(active="false")) > 0:
+            for product in stripe.Product.list(active="false"):
+                productname = product.name
+                embed.add_field(name=f"{productname} - `ID: {product.id}`", value="", inline=False)
+        else:
+            embed.add_field(name="", value="There are no products archived.", inline=False)
+
+        config.SET_EMBED_FOOTER(self, embed)
+        await ctx.send(embed=embed)
+
+    
+    @addproduct.error
+    @removeproduct.error
+    @listproductids.error
+    @listarchived.error
+    async def admin_error(self, ctx, error):
+        if isinstance(error, MissingPermissions):
+            emb = discord.Embed(title=f'Sorry {ctx.message.author}!', description="You do not have permissions to do that.",
+                                        color=config.ERROR_COLOR)
+            await ctx.send(embed=emb)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Marketplace(bot))

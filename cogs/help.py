@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord.errors import Forbidden
 import config
 import datetime
+from discord.ext.commands import has_permissions, MissingPermissions
 
 async def send_embed(self, ctx, embed):
     try:
@@ -23,7 +24,7 @@ class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
+    @commands.command(description="Display help information about the bot")
     # @commands.bot_has_permissions(add_reactions=True,embed_links=True)
     async def help(self, ctx, *input):
         """Shows all modules of that bot"""
@@ -68,7 +69,7 @@ class Help(commands.Cog):
                 emb.add_field(name='Not belonging to a module', value=commands_desc, inline=False)
 
             # setting information about author
-            emb.add_field(name="About", value=f"Meet TEAZHI, the multi-purpose ecommerce Discord bot revolutionizing online shopping. Shop directly\
+            emb.add_field(name="About", value=f"Meet VirtualVNDR, the multi-purpose ecommerce bot revolutionizing marketplace experience on Discord. Shop directly\
                                                 in the server with automated services and real-time customer support, making online shopping easier\
                                                 and more efficient than ever before.")
             
@@ -81,7 +82,6 @@ class Help(commands.Cog):
         # block called when one cog-name is given
         # trying to find matching cog and it's commands
         elif len(input) == 1:
-
             # iterating trough cogs
             for cog in self.bot.cogs:
                 # check if cog is the matching one
@@ -98,6 +98,9 @@ class Help(commands.Cog):
 
                     # getting commands from cog
                     for command in self.bot.get_cog(cog).get_commands():
+                        # if command.name == 'help':
+                        #     continue
+
                         # if cog is not hidden
                         if not command.hidden:
                             if command.usage is None:
@@ -129,6 +132,19 @@ class Help(commands.Cog):
 
         # sending reply embed using our own function defined above
         await send_embed(self, ctx, emb)
+
+
+    @commands.command(description="Begin the setup for your servers marketplace")
+    @has_permissions(administrator=True)
+    async def setup(self, ctx: commands.Context):
+        emb = discord.Embed(
+            title="Let us begin the setup for your servers marketplace.",
+            description=f"\nStart by providing a general command prefix:",
+            color=config.MAIN_COLOR
+        )
+
+        await ctx.send(embed=emb)
+
 
 async def setup(bot):
     await bot.add_cog(Help(bot))

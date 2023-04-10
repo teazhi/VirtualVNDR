@@ -26,8 +26,11 @@ def main():
         # load cogs
         for file in os.listdir("./cogs"):
             if file.endswith(".py"):
-                print(f"{file[:-3]} loaded.")
-                await client.load_extension(f"cogs.{file[:-3]}")
+                try:
+                    await client.load_extension(f"cogs.{file[:-3]}")
+                    print(f"{file[:-3]} loaded.")
+                except commands.ExtensionAlreadyLoaded:
+                    print(f"{file[:-3]} is already loaded.")
         
         print("━━━━━━━━━━━━━━━━━━━━━━━")
 
