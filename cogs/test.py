@@ -4,6 +4,7 @@ from discord.ui import Select, View
 from discord.ext import commands
 import stripe
 from dotenv import load_dotenv
+from discord import app_commands
 
 class Test(commands.Cog, name="Test"):
     """ | Command for testing purposes"""
@@ -13,8 +14,8 @@ class Test(commands.Cog, name="Test"):
 
     load_dotenv()
 
-    @commands.command(description="Testing Stripe")
-    async def test(self, ctx: commands.Context):
+    @app_commands.command(name="test")
+    async def test(self, interaction: discord.Interaction):
         stripe.api_key = os.getenv("STRIPE_API_KEY")
 
         customers = stripe.Customer.list()
@@ -24,7 +25,8 @@ class Test(commands.Cog, name="Test"):
         else:
             print("there are customers")
 
-        
+        await interaction.response.send_message("Test command is working.", ephemeral=True)
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Test(bot))

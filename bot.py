@@ -2,6 +2,7 @@ import discord
 import os
 from dotenv import load_dotenv
 from discord.ext import commands
+from discord import app_commands
 import config
 
 def main():
@@ -32,6 +33,7 @@ def main():
                 except commands.ExtensionAlreadyLoaded:
                     print(f"{file[:-3]} is already loaded.")
         
+        await client.tree.sync(guild = discord.Object(id = 1092628564324659290))
         print("━━━━━━━━━━━━━━━━━━━━━━━")
 
     client.run(os.getenv("TOKEN"))

@@ -6,6 +6,7 @@ import asyncio
 import datetime
 from discord.ui import Select, View
 from discord.ext.commands import has_permissions, MissingPermissions
+from discord import app_commands
 import json
 import stripe
 from dotenv import load_dotenv
@@ -26,8 +27,8 @@ class Marketplace(commands.Cog, name="Marketplace"):
     # ——————————————————————————————————————
     # SHOP COMMAND
     # ——————————————————————————————————————
-    @commands.command(description="Display current available products in the marketplace", aliases=["mp", "marketplace"])
-    async def shop(self, ctx: commands.Context):
+    @app_commands.command(description="Display current available products in the marketplace")
+    async def shop(self, interaction: discord.Interaction):
         MPFILEPATH = os.path.join(os.path.dirname(__file__), 'marketplaceItems.json')
         mpItems = self.load_mpItems(MPFILEPATH)
         
@@ -66,18 +67,18 @@ class Marketplace(commands.Cog, name="Marketplace"):
             for product in mpItems.values():
                 select.options.append(discord.SelectOption(label=f"{product[0]} | QTY: {product[2]}" , description=product[1]))
 
-            async def doSmthCallback(interaction):
-                await interaction.response.send(f"You chose: {select.values}")
+            async def doSmthCallback(interact):
+                await interact.response.send(f"You chose: {select.values}")
             
             select.callback = doSmthCallback
 
             view = View()
             view.add_item(select)
 
-            await ctx.send(embed=mpEmbed)
-            await ctx.send(embed=emb, view=view)
+            await interaction.response.send_message(embed=mpEmbed, ephemeral=True)
+            await interaction.response.send_message(embed=emb, view=view, ephemeral=True)
         else:
-            await ctx.send(embed=mpEmbed)
+            await interaction.response.send_message(embed=mpEmbed, ephemeral=True)
 
     # ——————————————————————————————————————
     # ADDPRODUCT COMMAND
