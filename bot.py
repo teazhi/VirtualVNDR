@@ -7,7 +7,8 @@ import config
 
 def main():
     client = commands.Bot(
-        config.PREFIX, 
+        config.PREFIX,
+        owner_id = 853288012851314729,
         intents=discord.Intents.all(), 
         status=discord.Status.dnd, 
         activity=discord.Activity(type=discord.ActivityType.watching, name='teazhi work on marketplace')
@@ -32,8 +33,6 @@ def main():
                     print(f"{file[:-3]} loaded.")
                 except commands.ExtensionAlreadyLoaded:
                     print(f"{file[:-3]} is already loaded.")
-        
-        await client.tree.sync(guild = discord.Object(id = 1092628564324659290))
         print("━━━━━━━━━━━━━━━━━━━━━━━")
 
     client.run(os.getenv("TOKEN"))

@@ -1,1 +1,9 @@
-{}
+{
+    "PROD1": [
+        "Prod 1",
+        "This my first prod",
+        "10",
+        1000,
+        "PROD1"
+    ]
+}

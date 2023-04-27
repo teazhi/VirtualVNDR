@@ -12,8 +12,6 @@ import stripe
 from dotenv import load_dotenv
 
 class Marketplace(commands.Cog, name="Marketplace"):
-    """ | List of all marketplace commands"""
-
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
@@ -23,12 +21,20 @@ class Marketplace(commands.Cog, name="Marketplace"):
         if os.path.getsize(pathToFile) > 0:
             with open(pathToFile) as fp:
                 return json.load(fp)
+            
+    def checkAdminPermissions(self, interaction: discord.Interaction):
+        if not interaction.user.guild_permissions.administrator:
+            return False
+        else:
+            return True
+
     
     # ——————————————————————————————————————
     # SHOP COMMAND
     # ——————————————————————————————————————
     @app_commands.command(description="Display current available products in the marketplace")
     async def shop(self, interaction: discord.Interaction):
+        stripe.api_key = os.getenv("STRIPE_API_KEY")
         MPFILEPATH = os.path.join(os.path.dirname(__file__), 'marketplaceItems.json')
         mpItems = self.load_mpItems(MPFILEPATH)
         
@@ -47,15 +53,19 @@ class Marketplace(commands.Cog, name="Marketplace"):
         else:
             for product in mpItems.values():
                 mpEmbed.add_field(
-                    name=f"{product[0]} | `QTY: {product[2]}`",
-                    value=f"{product[1]}",
+                    name=f"__                        __\n\n{product[0]} | `Price: ${product[3]/100:,.2f}`",
+                    value=f"*Qty: {product[2]}*\nDescription:\n{product[1]}",
                     inline=False
                 )
+            mpEmbed.add_field(name="__                        __\n", value="")
 
         config.SET_EMBED_FOOTER(self, mpEmbed)
-        
-        # PURCHASE DROPDOWN
-        if len(mpItems) != 0:
+
+
+        # PURCHASE BUTTON
+        purchaseBTN = discord.ui.Button(label="Purchase", style=discord.ButtonStyle.green, emoji="💳")
+
+        async def pBTNCallback(interaction):
             emb = discord.Embed(
                 title="Select a product to purchase:",
                 description="",
@@ -65,36 +75,50 @@ class Marketplace(commands.Cog, name="Marketplace"):
             select = Select()
 
             for product in mpItems.values():
-                select.options.append(discord.SelectOption(label=f"{product[0]} | QTY: {product[2]}" , description=product[1]))
+                select.options.append(discord.SelectOption(label=f"{product[0]} | ID: {product[4]}" , description=product[1]))
 
-            async def doSmthCallback(interact):
-                await interact.response.send(f"You chose: {select.values}")
+            async def createCheckoutCallback(interact):
+                findIDinStr = list(select.values[0].split(" "))
+
+                for price in stripe.Price.list():
+                    if price.product == findIDinStr[len(findIDinStr)-1]:
+                        # stripe.Product.retrieve(price.product)
+                        # stripe.checkout.Session.create(
+                        #     success_url="https://virtualvndr.com/success?id={CHECKOUT_SESSION_id}",
+                        #     automatic_payment_methods={'enabled': True},
+                        #     mode="payment",
+                        #     line_items=[
+                        #         {
+                        #             "price": price.id,
+                        #             "quantity": productQuantity,
+                        #         }
+                        #     ]
+                        # )
             
-            select.callback = doSmthCallback
+            select.callback = createCheckoutCallback
 
             view = View()
             view.add_item(select)
+            await interaction.user.send(embed=emb, view=view)
 
-            await interaction.response.send_message(embed=mpEmbed, ephemeral=True)
-            await interaction.response.send_message(embed=emb, view=view, ephemeral=True)
+        purchaseBTN.callback = pBTNCallback
+
+        purchaseBTNView = discord.ui.View()
+        purchaseBTNView.add_item(purchaseBTN)
+
+        #-------------------------------------------
+        
+        # PURCHASE DROPDOWN
+        if len(mpItems) != 0:
+            await interaction.response.send_message(embed=mpEmbed, view=purchaseBTNView, ephemeral=True)
         else:
             await interaction.response.send_message(embed=mpEmbed, ephemeral=True)
 
     # ——————————————————————————————————————
     # ADDPRODUCT COMMAND
     # ——————————————————————————————————————
-    @commands.command(description="Add a product to the marketplace", usage=" [PROD_ID]", aliases=["ap"])
-    @has_permissions(administrator=True)
-    async def addproduct(self, ctx: commands.Context, productID = None, *arg):
-        if len(arg) > 0:
-            embed = discord.Embed(
-                title="Invalid Arguments",
-                description=f"Add product only asks for one argument: `PROD_ID`",
-                color=config.ERROR_COLOR
-            )
-            await ctx.send(embed=embed)
-            return
-
+    @app_commands.command(description="Add a product to the marketplace")
+    async def addproduct(self, interaction: discord.Interaction, productid: str):
         def process_cancelled():
             embed = discord.Embed(
                 title="Process Cancelled",
@@ -127,15 +151,15 @@ class Marketplace(commands.Cog, name="Marketplace"):
             )
             return emb
         
-        def printItemDetails(self, productID, productName, productDesc, productPPU, productQuantity, mpItems):
+        def printItemDetails(self, productid, productName, productDesc, productPPU, productQuantity, mpItems):
             embed = discord.Embed(
-                title=f'Item Details | `id: {productID}`', description="",
+                title=f'Item Details | `id: {productid}`', description="",
                 color=config.SUCCESS_COLOR
             )
             embed.add_field(name="Name:", value=productName, inline=False)
             embed.add_field(name="Description:", value=productDesc, inline=False)
             embed.add_field(name="", value="", inline=False)
-            embed.add_field(name="Price Per Unit:", value=productPPU, inline=True)
+            embed.add_field(name="Price Per Unit:", value=f"${productPPU/100:,.2f}", inline=True)
             embed.add_field(name="Quantity:", value=productQuantity, inline=True)
 
             embed.add_field(name="", value="", inline=False)
@@ -143,7 +167,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
             productNumber = len(mpItems)
             embed.add_field(
                 name="",
-                value=f"`Updated!\nItems in Inventory: {productNumber}`",
+                value=f">>> Products in inventory has been updated!\nProducts: **{productNumber}**",
                 inline=False
             )
 
@@ -165,243 +189,204 @@ class Marketplace(commands.Cog, name="Marketplace"):
 
         mpItems = self.load_mpItems(MPFILEPATH)
 
-        if productID in mpItems:
+        if productid in mpItems:
             emb = discord.Embed(
-                title=f'There is already a product with ID: `{productID}`',
+                title=f'There is already a product with ID: `{productid}`',
                 description=f"Please try again.",
                 color=config.ERROR_COLOR
             )
-            await ctx.send(embed=emb)
+            await interaction.response.send_message(embed=emb)
             return
         
         for product in stripe.Product.list():
-            if product.id== productID:
+            if product.id == productid:
                 emb = discord.Embed(
                     title=f'There is already a product with this ID archived in your Stripe store.',
                     description=f"Please remove `{product.name}` from your store and try again.\n\
                         [Head Over](https://dashboard.stripe.com/products?active=false)",
                     color=config.ERROR_COLOR
                 )
-                await ctx.send(embed=emb)
+                await interaction.response.send_message(embed=emb)
                 return
 
-        if productID == None:
-            emb = discord.Embed(
-                title=f'Error',
-                description=f"Please provide a product id. \n\n`Usage: {config.PREFIX}addproduct [PROD_ID]`",
-                color=config.ERROR_COLOR
-            )
-            await ctx.send(embed=emb)
-        else:
-            emb = discord.Embed(
-                title=f"Creating a new product with product ID: `{productID}`", 
-                description="**Please do not leave or chat during this process.**\n\
-                            If you'd like to cancel the process at any time, please type `cancel`.\n\n\
-                            You have **30 seconds** between each prompt to give an answer before the process is terminated.\n\n\
-                            Starting soon..",
-                color=config.MAIN_COLOR
-            )
-            await ctx.send(embed=emb)
+        emb = discord.Embed(
+            title=f"Creating a new product with product ID: `{productid}`", 
+            description="**Please do not leave or chat during this process.**\n\
+                        If you'd like to cancel the process at any time, please type `cancel`.\n\n\
+                        You have **30 seconds** between each prompt to give an answer before the process is terminated.\n\n\
+                        Starting soon..",
+            color=config.MAIN_COLOR
+        )
+        await interaction.response.send_message(embed=emb)
 
-            await asyncio.sleep(2.5)
+        await asyncio.sleep(2.5)
 
+        emb = discord.Embed(
+            title=f"Begin by providing a product name:", 
+            description="",
+            color=config.MAIN_COLOR
+        )
+        await interaction.channel.send(embed=emb)
+        
+        def checkAuthorAndChannel(msg):
+            return msg.author == interaction.user and msg.channel == interaction.channel
+        
+        try:
+            productName = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+            productName = str(productName.content)
+
+            if productName.lower() == 'cancel':
+                await interaction.channel.send(embed=process_cancelled())
+                return
+        except asyncio.TimeoutError:
+            await interaction.channel.send(embed=process_terminated())
+            return
+
+        emb = discord.Embed(
+            title=f"Item Description:", 
+            description="",
+            color=config.MAIN_COLOR
+        )
+        await interaction.channel.send(embed=emb)
+
+        try:
+            productDesc = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+            productDesc = str(productDesc.content)
+            if productDesc.lower() == 'cancel':
+                await interaction.channel.send(embed=process_cancelled())
+                return
+        except asyncio.TimeoutError:
+            await interaction.channel.send(embed=process_terminated())
+            return
+
+        while True:
             emb = discord.Embed(
-                title=f"Begin by providing a product name:", 
+                title=f"Item Quantity:", 
                 description="",
                 color=config.MAIN_COLOR
             )
-            await ctx.send(embed=emb)
-            
-            def checkAuthorAndChannel(msg):
-                return msg.author == ctx.author and msg.channel == ctx.channel
-            
+            await interaction.channel.send(embed=emb)
+
             try:
-                productName = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                productName = str(productName.content)
-
-                if productName.lower() == 'cancel':
-                    await ctx.send(embed=process_cancelled())
+                productQuantity = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+                productQuantity = str(productQuantity.content)
+                if productQuantity.lower() == 'cancel':
+                    await interaction.channel.send(embed=process_cancelled())
                     return
+                if productQuantity.isnumeric():
+                    break
+                else:
+                    await interaction.channel.send(embed=invalid_number())
+                    continue
             except asyncio.TimeoutError:
-                await ctx.send(embed=process_terminated())
+                await interaction.channel.send(embed=process_terminated())
                 return
-
+            
+        def is_float(string):
+            try:
+                float(string)
+                return True
+            except ValueError:
+                return False
+            
+        while True:
             emb = discord.Embed(
-                title=f"Item Description:", 
-                description="",
+                title=f"Item Price/Unit (in hundreds):", 
+                description="`Ex) 500 = $5.00`",
                 color=config.MAIN_COLOR
             )
-            await ctx.send(embed=emb)
+            await interaction.channel.send(embed=emb)
 
             try:
-                productDesc = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                productDesc = str(productDesc.content)
-                if productDesc.lower() == 'cancel':
-                    await ctx.send(embed=process_cancelled())
+                productPPU = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+                productPPU = str(productPPU.content)
+                if productPPU.lower() == 'cancel':
+                    await interaction.channel.send(embed=process_cancelled())
                     return
+                if productPPU.isnumeric():
+                    productPPU = int(productPPU)
+                    break
+                elif is_float(productPPU):
+                    await interaction.channel.send(embed=provide_int_val())
+                    continue
+                else:
+                    await interaction.channel.send(embed=invalid_number())
+                    continue
             except asyncio.TimeoutError:
-                await ctx.send(embed=process_terminated())
+                await interaction.channel.send(embed=process_terminated())
                 return
+        
+        productDetails.append(productName)
+        productDetails.append(productDesc)
+        productDetails.append(productQuantity)
+        # productPPU = productPPU*100
+        productDetails.append(productPPU)
+        productDetails.append(productid)
 
-            while True:
-                emb = discord.Embed(
-                    title=f"Item Quantity:", 
-                    description="",
-                    color=config.MAIN_COLOR
-                )
-                await ctx.send(embed=emb)
+        stripe.Product.create(id=productid, name=productName, description=productDesc)
+        newProductPrice = stripe.Price.create(
+            product=productid,
+            unit_amount=productPPU,
+            currency="usd"
+        )
 
-                try:
-                    productQuantity = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                    productQuantity = str(productQuantity.content)
-                    if productQuantity.lower() == 'cancel':
-                        await ctx.send(embed=process_cancelled())
-                        return
-                    if productQuantity.isnumeric():
-                        break
-                    else:
-                        await ctx.send(embed=invalid_number())
-                        continue
-                except asyncio.TimeoutError:
-                    await ctx.send(embed=process_terminated())
-                    return
-                
-            def is_float(string):
-                try:
-                    float(string)
-                    return True
-                except ValueError:
-                    return False
-                
-            while True:
-                emb = discord.Embed(
-                    title=f"Item Price/Unit (in hundreds):", 
-                    description="`Ex) 500 = $5.00`",
-                    color=config.MAIN_COLOR
-                )
-                await ctx.send(embed=emb)
+        # if os.path.getsize(mpFilePath) > 0:
+        #     mpItems.update({productid: productDetails})
+        # else:
+        mpItems[productid] = productDetails
 
-                try:
-                    productPPU = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                    productPPU = str(productPPU.content)
-                    if productPPU.lower() == 'cancel':
-                        await ctx.send(embed=process_cancelled())
-                        return
-                    if productPPU.isnumeric():
-                        productPPU = int(productPPU)
-                        break
-                    elif is_float(productPPU):
-                        await ctx.send(embed=provide_int_val())
-                        continue
-                    else:
-                        await ctx.send(embed=invalid_number())
-                        continue
-                except asyncio.TimeoutError:
-                    await ctx.send(embed=process_terminated())
-                    return
-            
-            productDetails.append(productName)
-            productDetails.append(productDesc)
-            productDetails.append(productQuantity)
-            # productPPU = productPPU*100
-            productDetails.append(productPPU)
+        with open(MPFILEPATH, 'w') as json_file:
+            json.dump(mpItems, json_file, 
+                                indent=4,  
+                                separators=(',',': '))
 
-            stripe.Product.create(id=productID, name=productName, description=productDesc)
-            newProductPrice = stripe.Price.create(
-                product=productID,
-                unit_amount=productPPU,
-                currency="usd"
-            )
-
-            # newProductSession = stripe.checkout.Session.create(
-            #     line_items=[
-            #         {
-            #             "price_data": newProductPrice,
-            #             "adjustable_quantity": {"enabled": True, "minimum": 1, "maximum": productQuantity},
-            #             "quantity": 1,
-            #         },
-            #     ],
-            #     automatic_tax={"enabled": True},
-            #     mode="payment",
-            #     success_url="https://example.com/success",
-            #     cancel_url="https://example.com/cancel",
-            # )
-
-            # if os.path.getsize(mpFilePath) > 0:
-            #     mpItems.update({productID: productDetails})
-            # else:
-            mpItems[productID] = productDetails
-
-            with open(MPFILEPATH, 'w') as json_file:
-                json.dump(mpItems, json_file, 
-                                    indent=4,  
-                                    separators=(',',': '))
-
-            await ctx.send(embed=printItemDetails(self, productID, productName, productDesc, productPPU, productQuantity, mpItems))
+        await interaction.channel.send(embed=printItemDetails(self, productid, productName, productDesc, productPPU, productQuantity, mpItems))
 
     # ——————————————————————————————————————
     # REMOVEPRODUCT COMMAND
     # ——————————————————————————————————————
-    @commands.command(description="Remove a product from the marketplace", usage=" [PROD_ID]", aliases=["rp"])
-    @has_permissions(administrator=True)
-    async def removeproduct(self, ctx: commands.Context, productID = None, *arg):
+    @app_commands.command(description="Remove a product from the marketplace")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def removeproduct(self, interaction: discord.Interaction, productid: str):
         MPFILEPATH = os.path.join(os.path.dirname(__file__), 'marketplaceItems.json')
-
-        if len(arg) > 0:
-            embed = discord.Embed(
-                title="Invalid Arguments",
-                description=f"Remove product only asks for one argument: `PROD_ID`",
-                color=config.ERROR_COLOR
-            )
-            await ctx.send(embed=embed)
-            return
 
         stripe.api_key = os.getenv("STRIPE_API_KEY")
 
-        if productID is None:
+        mpItems = self.load_mpItems(MPFILEPATH)
+
+        if productid in mpItems:
+            findProd = stripe.Product.retrieve(productid)
+            findProd.modify(productid, active="false")
+
+            del mpItems[productid]
+
+            with open(MPFILEPATH, 'w') as json_file:
+                json.dump(mpItems, json_file, 
+                                indent=4,  
+                                separators=(',',': '))
+                
+            emb = discord.Embed(
+                title=f'Success',
+                description=f"`{productid}` has been removed from the marketplace, but is \nstill archived in your Stripe database.\n\n\
+                            Head over to your [Stripe dashboard](https://dashboard.stripe.com/products?active=false) to delete it permanently.",
+                color=config.SUCCESS_COLOR
+            )
+        else:
             emb = discord.Embed(
                 title=f'Error',
-                description=f"Please provide a product id. \n\n`Usage: {config.PREFIX}removeproduct [PROD_ID]`",
+                description=f"`{productid}` is not a valid product ID.",
                 color=config.ERROR_COLOR
             )
-            await ctx.send(embed=emb)
-            return
-        else:
-            mpItems = self.load_mpItems(MPFILEPATH)
-
-            if productID in mpItems:
-                findProd = stripe.Product.retrieve(productID)
-                findProd.modify(productID, active="false")
-
-                del mpItems[productID]
-
-                with open(MPFILEPATH, 'w') as json_file:
-                    json.dump(mpItems, json_file, 
-                                    indent=4,  
-                                    separators=(',',': '))
-                    
-                emb = discord.Embed(
-                    title=f'Success',
-                    description=f"`{productID}` has been removed from the marketplace, but is \nstill archived in your Stripe database.\n\n\
-                                Head over to your [Stripe dashboard](https://dashboard.stripe.com/products?active=false) to delete it permanently.",
-                    color=config.SUCCESS_COLOR
-                )
-            else:
-                emb = discord.Embed(
-                    title=f'Error',
-                    description=f"`{productID}` is not a valid product ID.",
-                    color=config.ERROR_COLOR
-                )
             
         config.SET_EMBED_FOOTER(self, emb)
-        await ctx.send(embed=emb)
+        await interaction.response.send_message(embed=emb)
 
     # ——————————————————————————————————————
     # LISTPRODUCTIDS COMMAND
     # ——————————————————————————————————————
-    @commands.command(description="List all products and their IDs", aliases=["lpids"])
-    @has_permissions(administrator=True)
-    async def listproductids(self, ctx: commands.Context):
+    @app_commands.command(description="List all products and their IDs")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def listproductids(self, interaction: discord.Interaction):
         MPFILEPATH = os.path.join(os.path.dirname(__file__), 'marketplaceItems.json')
         mpItems = self.load_mpItems(MPFILEPATH)
 
@@ -418,14 +403,14 @@ class Marketplace(commands.Cog, name="Marketplace"):
             embed.add_field(name="", value=f"There are no products in your marketplace.\n\nAdd a product using: `{config.PREFIX}addproduct [PROD_ID]`", inline=False)
 
         config.SET_EMBED_FOOTER(self, embed)
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
     
     # ——————————————————————————————————————
     # LISTARCHIVED COMMAND
     # ——————————————————————————————————————
-    @commands.command(description="List all products and their IDs", aliases=["larchived"])
-    @has_permissions(administrator=True)
-    async def listarchived(self, ctx: commands.Context):
+    @app_commands.command(description="List all products archived in stripe")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def listarchived(self, interaction: discord.Interaction):
         stripe.api_key = os.getenv("STRIPE_API_KEY")
 
         embed = discord.Embed(
@@ -441,18 +426,18 @@ class Marketplace(commands.Cog, name="Marketplace"):
             embed.add_field(name="", value="There are no products archived.", inline=False)
 
         config.SET_EMBED_FOOTER(self, embed)
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
 
     
     @addproduct.error
     @removeproduct.error
     @listproductids.error
     @listarchived.error
-    async def admin_error(self, ctx, error):
+    async def admin_error(self, interaction, error):
         if isinstance(error, MissingPermissions):
-            emb = discord.Embed(title=f'Sorry {ctx.message.author}!', description="You do not have permissions to do that.",
+            emb = discord.Embed(title=f'Sorry {interaction.user}!', description="You do not have permissions to do that.",
                                         color=config.ERROR_COLOR)
-            await ctx.send(embed=emb)
+            await interaction.response.send_message(embed=emb)
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Marketplace(bot))

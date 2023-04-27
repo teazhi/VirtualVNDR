@@ -18,14 +18,27 @@ class Test(commands.Cog, name="Test"):
     async def test(self, interaction: discord.Interaction):
         stripe.api_key = os.getenv("STRIPE_API_KEY")
 
-        customers = stripe.Customer.list()
+        checkoutsessions = stripe.checkout.Session.list()
 
-        if len(customers) == 0:
-            print("No customers")
-        else:
-            print("there are customers")
+        emb = discord.Embed(title="All checkout sessions")
 
-        await interaction.response.send_message("Test command is working.", ephemeral=True)
+        for sesh in checkoutsessions:
+            emb.add_field(name=sesh.id, value=sesh.url)
+
+        await interaction.response.send_message(embed=emb, ephemeral=True)
+
+    @app_commands.command(name="expirecheckout")
+    async def expireCheckout(self, interaction: discord.Interaction):
+        stripe.api_key = os.getenv("STRIPE_API_KEY")
+
+        checkoutsessions = stripe.checkout.Session.list()
+
+        for sesh in checkoutsessions:
+            stripe.checkout.Session.expire(sesh.id)
+
+        emb = discord.Embed(title="All checkout sessions have been expired.")
+
+        await interaction.response.send_message(embed=emb, ephemeral=True)
 
 
 async def setup(bot: commands.Bot):
