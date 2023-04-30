@@ -53,11 +53,12 @@ class Marketplace(commands.Cog, name="Marketplace"):
         else:
             for product in mpItems.values():
                 mpEmbed.add_field(
-                    name=f"__                        __\n\n{product[0]} | `Price: ${product[3]/100:,.2f}`",
-                    value=f"*Qty: {product[2]}*\nDescription:\n{product[1]}",
-                    inline=False
+                    name=f"__                                                           __\
+                        \n{product[0]}",
+                    value=f">>> **Price:** ${product[3]/100:,.2f}\n**Qty:** {product[2]}\n**Description:**\n{product[1]}\n\
+                        __                                                           __",
+                    inline=True
                 )
-            mpEmbed.add_field(name="__                        __\n", value="")
 
         config.SET_EMBED_FOOTER(self, mpEmbed)
 
@@ -77,28 +78,48 @@ class Marketplace(commands.Cog, name="Marketplace"):
             for product in mpItems.values():
                 select.options.append(discord.SelectOption(label=f"{product[0]} | ID: {product[4]}" , description=product[1]))
 
-            async def createCheckoutCallback(interact):
+            async def createCheckoutCallback(interaction):
                 findIDinStr = list(select.values[0].split(" "))
+
+                await interaction.response.defer()
+                emb = discord.Embed(title="Attempting to find product...")
+                newmsg = await interaction.followup.send(embed=emb)
 
                 for price in stripe.Price.list():
                     if price.product == findIDinStr[len(findIDinStr)-1]:
-                        # stripe.Product.retrieve(price.product)
-                        # stripe.checkout.Session.create(
-                        #     success_url="https://virtualvndr.com/success?id={CHECKOUT_SESSION_id}",
-                        #     automatic_payment_methods={'enabled': True},
-                        #     mode="payment",
-                        #     line_items=[
-                        #         {
-                        #             "price": price.id,
-                        #             "quantity": productQuantity,
-                        #         }
-                        #     ]
-                        # )
+                        await asyncio.sleep(2)
+                        emb = discord.Embed(title="Product found.")
+                        await newmsg.edit(embed=emb)
+                        embed = discord.Embed(title="Create a checkout link?")
+                        createCOLinkBTN = discord.ui.Button(label="Yes", style=discord.ButtonStyle.green, emoji="✅")
+
+                        async def createCOCallback(interaction):
+                            # stripe.Product.retrieve(price.product)
+                            # stripe.checkout.Session.create(
+                            #     success_url="https://virtualvndr.com/success?id={CHECKOUT_SESSION_id}",
+                            #     automatic_payment_methods={'enabled': True},
+                            #     mode="payment",
+                            #     line_items=[
+                            #         {
+                            #             "price": price.id,
+                            #             "quantity": productQuantity,
+                            #         }
+                            #     ]
+                            # )
+                            await interaction.user.send("Created checkout session!")
+                        
+                        createCOLinkBTN.callback = createCOCallback
+                        createCOLinkBTNView = discord.ui.View()
+                        createCOLinkBTNView.add_item(createCOLinkBTN)
+                        await interaction.user.send(embed=embed, view=createCOLinkBTNView)
             
             select.callback = createCheckoutCallback
 
             view = View()
             view.add_item(select)
+            purchaseBTNView.remove_item(purchaseBTN)
+            await interaction.response.defer()
+            await interaction.user.send(embed=mpEmbed, view=purchaseBTNView)
             await interaction.user.send(embed=emb, view=view)
 
         purchaseBTN.callback = pBTNCallback
@@ -136,20 +157,28 @@ class Marketplace(commands.Cog, name="Marketplace"):
             return embed
         
         def invalid_number():
-            emb = discord.Embed(
+            embed = discord.Embed(
                 title=f"Invalid Number", 
                 description="Please provide a number.",
                 color=config.ERROR_COLOR
             )
-            return emb
+            return embed
         
         def provide_int_val():
-            emb = discord.Embed(
+            embed = discord.Embed(
                 title=f"Invalid Number", 
                 description="Please provide an integer value.\nEx) 500 = $5.00",
                 color=config.ERROR_COLOR
             )
-            return emb
+            return embed
+        
+        def info_provided_success(var: str):
+            embed = discord.Embed(
+                title=f"Successfully provided `{var}`", 
+                description="",
+                color=config.SUCCESS_COLOR
+            )
+            return embed
         
         def printItemDetails(self, productid, productName, productDesc, productPPU, productQuantity, mpItems):
             embed = discord.Embed(
@@ -195,7 +224,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
                 description=f"Please try again.",
                 color=config.ERROR_COLOR
             )
-            await interaction.response.send_message(embed=emb)
+            await interaction.response.send_message(embed=emb, ephemeral=True)
             return
         
         for product in stripe.Product.list():
@@ -206,7 +235,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
                         [Head Over](https://dashboard.stripe.com/products?active=false)",
                     color=config.ERROR_COLOR
                 )
-                await interaction.response.send_message(embed=emb)
+                await interaction.response.send_message(embed=emb, ephemeral=True)
                 return
 
         emb = discord.Embed(
@@ -217,7 +246,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
                         Starting soon..",
             color=config.MAIN_COLOR
         )
-        await interaction.response.send_message(embed=emb)
+        await interaction.response.send_message(embed=emb, ephemeral=True)
 
         await asyncio.sleep(2.5)
 
@@ -226,60 +255,78 @@ class Marketplace(commands.Cog, name="Marketplace"):
             description="",
             color=config.MAIN_COLOR
         )
-        await interaction.channel.send(embed=emb)
+        pNameMSG = await interaction.followup.send(embed=emb, ephemeral=True)
         
         def checkAuthorAndChannel(msg):
             return msg.author == interaction.user and msg.channel == interaction.channel
         
         try:
-            productName = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-            productName = str(productName.content)
+            productNameMSG = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+            productName = str(productNameMSG.content)
+            await productNameMSG.delete()
 
             if productName.lower() == 'cancel':
-                await interaction.channel.send(embed=process_cancelled())
+                await pNameMSG.edit(embed=process_cancelled())
                 return
+            
+            await pNameMSG.edit(embed=info_provided_success("Product Name"))
         except asyncio.TimeoutError:
-            await interaction.channel.send(embed=process_terminated())
+            await pNameMSG.edit(embed=process_terminated())
             return
 
         emb = discord.Embed(
-            title=f"Item Description:", 
+            title=f"Product Description:", 
             description="",
             color=config.MAIN_COLOR
         )
-        await interaction.channel.send(embed=emb)
+        pDescMSG = await interaction.followup.send(embed=emb, ephemeral=True)
 
         try:
-            productDesc = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-            productDesc = str(productDesc.content)
-            if productDesc.lower() == 'cancel':
-                await interaction.channel.send(embed=process_cancelled())
+            productDescMSG = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+            productDesc = str(productDescMSG.content)
+            await productDescMSG.delete()
+
+            lengthError = discord.Embed(
+                title=f"Length Error | Process Terminated", 
+                description="The description must be 100 characters or less. Please try again.",
+                color=config.ERROR_COLOR
+            )
+            if len(productDesc) > 100:
+                await pDescMSG.edit(embed=lengthError)
                 return
+            if productDesc.lower() == 'cancel':
+                await pDescMSG.edit(embed=process_cancelled())
+                return
+            await pDescMSG.edit(embed=info_provided_success("Product Description"))
         except asyncio.TimeoutError:
-            await interaction.channel.send(embed=process_terminated())
+            await interaction.followup.send(embed=process_terminated())
             return
 
         while True:
             emb = discord.Embed(
-                title=f"Item Quantity:", 
+                title=f"Product Quantity:", 
                 description="",
                 color=config.MAIN_COLOR
             )
-            await interaction.channel.send(embed=emb)
+            pQuantityMSG = await interaction.followup.send(embed=emb, ephemeral=True)
 
             try:
-                productQuantity = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                productQuantity = str(productQuantity.content)
+                productQuantityMSG = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+                productQuantity = str(productQuantityMSG.content)
+                await productQuantityMSG.delete()
+
                 if productQuantity.lower() == 'cancel':
-                    await interaction.channel.send(embed=process_cancelled())
+                    await pQuantityMSG.edit(embed=process_cancelled())
                     return
                 if productQuantity.isnumeric():
+                    await pQuantityMSG.edit(embed=info_provided_success("Product Quantity"))
                     break
                 else:
-                    await interaction.channel.send(embed=invalid_number())
+                    await pQuantityMSG.edit(embed=invalid_number())
+                    await asyncio.sleep(3)
                     continue
             except asyncio.TimeoutError:
-                await interaction.channel.send(embed=process_terminated())
+                await pQuantityMSG.edit(embed=process_terminated())
                 return
             
         def is_float(string):
@@ -291,29 +338,32 @@ class Marketplace(commands.Cog, name="Marketplace"):
             
         while True:
             emb = discord.Embed(
-                title=f"Item Price/Unit (in hundreds):", 
-                description="`Ex) 500 = $5.00`",
+                title=f"Product Price/Unit (in hundreds):", 
+                description="`Ex) 100 = $1.00`",
                 color=config.MAIN_COLOR
             )
-            await interaction.channel.send(embed=emb)
+            pPPUMSG = await interaction.followup.send(embed=emb, ephemeral=True)
 
             try:
-                productPPU = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
-                productPPU = str(productPPU.content)
+                productPPUMSG = await self.bot.wait_for("message", check=checkAuthorAndChannel, timeout=30)
+                productPPU = str(productPPUMSG.content)
+                await productPPUMSG.delete()
+
                 if productPPU.lower() == 'cancel':
-                    await interaction.channel.send(embed=process_cancelled())
+                    await pPPUMSG.edit(embed=process_cancelled())
                     return
                 if productPPU.isnumeric():
                     productPPU = int(productPPU)
+                    await pPPUMSG.edit(embed=info_provided_success("Product PPU"))
                     break
                 elif is_float(productPPU):
-                    await interaction.channel.send(embed=provide_int_val())
+                    await pPPUMSG.edit(embed=provide_int_val())
                     continue
                 else:
-                    await interaction.channel.send(embed=invalid_number())
+                    await pPPUMSG.edit(embed=invalid_number())
                     continue
             except asyncio.TimeoutError:
-                await interaction.channel.send(embed=process_terminated())
+                await pPPUMSG.edit(embed=process_terminated())
                 return
         
         productDetails.append(productName)
@@ -340,7 +390,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
                                 indent=4,  
                                 separators=(',',': '))
 
-        await interaction.channel.send(embed=printItemDetails(self, productid, productName, productDesc, productPPU, productQuantity, mpItems))
+        await interaction.followup.send(embed=printItemDetails(self, productid, productName, productDesc, productPPU, productQuantity, mpItems), ephemeral=True)
 
     # ——————————————————————————————————————
     # REMOVEPRODUCT COMMAND
@@ -379,7 +429,7 @@ class Marketplace(commands.Cog, name="Marketplace"):
             )
             
         config.SET_EMBED_FOOTER(self, emb)
-        await interaction.response.send_message(embed=emb)
+        await interaction.response.send_message(embed=emb, ephemeral=True)
 
     # ——————————————————————————————————————
     # LISTPRODUCTIDS COMMAND
@@ -400,10 +450,10 @@ class Marketplace(commands.Cog, name="Marketplace"):
                 productname = mpItems[product][0]
                 embed.add_field(name=f"{productname} - `ID: {product}`", value="", inline=False)
         else:
-            embed.add_field(name="", value=f"There are no products in your marketplace.\n\nAdd a product using: `{config.PREFIX}addproduct [PROD_ID]`", inline=False)
+            embed.add_field(name="", value=f"There are no products in your marketplace.\n\nAdd a product using: `/addproduct [PROD_ID]`", inline=False)
 
         config.SET_EMBED_FOOTER(self, embed)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
     
     # ——————————————————————————————————————
     # LISTARCHIVED COMMAND
@@ -426,7 +476,20 @@ class Marketplace(commands.Cog, name="Marketplace"):
             embed.add_field(name="", value="There are no products archived.", inline=False)
 
         config.SET_EMBED_FOOTER(self, embed)
-        await interaction.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+    
+    @app_commands.command(description="Link to stripe dashboard")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def stripedash(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title=f"Stripe Dashboard", description="\n__**LIVE**__\n[Active Products](https://dashboard.stripe.com/products?active=true)\n\
+                [Archived Products](https://dashboard.stripe.com/products?active=false)\n\n__**TEST**__\n[Active Products](https://dashboard.stripe.com/test/products?active=true)\n\
+                [Archived Products](https://dashboard.stripe.com/test/products?active=false)",
+            color=config.MAIN_COLOR
+        )
+
+        config.SET_EMBED_FOOTER(self, embed)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     
     @addproduct.error

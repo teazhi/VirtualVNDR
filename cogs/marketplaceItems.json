@@ -1,9 +1,16 @@
 {
     "PROD1": [
-        "Prod 1",
-        "This my first prod",
-        "10",
+        "PRoduct 1",
+        "This my first produc",
+        "3",
         1000,
         "PROD1"
+    ],
+    "PROD3": [
+        "Product 3",
+        "w fioanwfoin aiownf iawnfio anwofi nawoinf aoiwnf awff",
+        "6",
+        100,
+        "PROD3"
     ]
 }
