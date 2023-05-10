@@ -1,16 +1,9 @@
 {
-    "PROD1": [
-        "PRoduct 1",
-        "This my first produc",
-        "3",
-        1000,
-        "PROD1"
-    ],
-    "PROD3": [
-        "Product 3",
-        "w fioanwfoin aiownf iawnfio anwofi nawoinf aoiwnf awff",
-        "6",
+    "PROD2": [
+        "Product 2",
+        "This my second product",
+        "10",
         100,
-        "PROD3"
+        "PROD2"
     ]
 }

@@ -11,7 +11,7 @@ def main():
         owner_id = 853288012851314729,
         intents=discord.Intents.all(), 
         status=discord.Status.dnd, 
-        activity=discord.Activity(type=discord.ActivityType.watching, name='teazhi work on marketplace')
+        activity=discord.Activity(type=discord.ActivityType.watching, name='/help for incoming commands 👀')
     )
     client.remove_command('help')
 

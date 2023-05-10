@@ -25,15 +25,15 @@ class Help(commands.Cog):
 
         # starting to build embed
         emb = discord.Embed(
-            title=f'{interaction.guild.name} - Server', color=discord.Color.from_rgb(210, 43, 43),
-            description=f"Admin commands in the server start with `{config.PREFIX}`\n\
-                [Invite Me](https://discord.com/api/oauth2/authorize?client_id=1092661101163991091&permissions=8&scope=bot) ✦ [Discord](https://discord.gg/kqH4uNBgsD)\n\u200b",
+            title=f'Server: {interaction.guild.name}', color=discord.Color.from_rgb(210, 43, 43),
+            description=f"Admin commands in the server start with `{config.PREFIX}`",
         )
+        emb.add_field(name="__                                        __", value="", inline=False)
 
         # iterating trough cogs, gathering descriptions
         allcmds = '>>> '
         for cog in self.bot.cogs:
-            if cog == "Admin" or cog == "Help":
+            if cog == "Admin" or cog == "Help" or cog == "Test":
                 continue
             for command in self.bot.get_cog(cog).get_app_commands():
                 allcmds += f'**/{command.name}**\n{command.description}\n\n'
@@ -53,6 +53,8 @@ class Help(commands.Cog):
         if commands_desc:
             emb.add_field(name='Not belonging to a module', value=commands_desc, inline=False)
 
+        emb.add_field(name="__                                        __", value="", inline=False)
+
         # setting information about author
         emb.add_field(name="About", value=f"Meet VirtualVNDR, the multi-purpose ecommerce bot revolutionizing marketplace experience on Discord. Shop directly\
                                             in the server with automated services and real-time customer support, making online shopping easier\
@@ -61,13 +63,13 @@ class Help(commands.Cog):
         emb.add_field(name="", value="", inline=False)
         
         # REMOVE GITHUB LINK WHEN SHOWING THIS TO THE PUBLIC
-        emb.add_field(name="", value="**[[GitHub](https://github.com/teazhi/TEAZHI_Bot)]** ✦ **[[Website](https://www.teazhitz.com)]**", inline=False)
-        # emb.add_field(name="", value="", inline=True)
+        emb.add_field(name="", value="**[[Invite Me](https://discord.com/api/oauth2/authorize?client_id=1092661101163991091&permissions=8&scope=bot)]** ✦ **[[Discord](https://discord.gg/PDNgS9WHsF)]** ✦ **[[GitHub](https://github.com/teazhi/VirtualVNDR)]** ✦ **[[Website](https://www.teazhitz.com)]**", inline=False)
+        emb.add_field(name="__                                        __", value="", inline=False)
 
         # sending reply embed using our own function defined above
         try:
             config.SET_EMBED_FOOTER(self,emb)
-            await interaction.response.send_message(embed=emb, ephemeral=True)
+            await interaction.response.send_message(embed=emb, ephemeral=False)
         except Forbidden:
             try:
                 await interaction.response.send_message("Hey, seems like I can't send embeds. Please check my permissions :)")
