@@ -8,7 +8,7 @@ OWNER_ID = "853288012851314729"
 OWNER_NAME = "teazhi#7831"
 MY_GUILD = discord.Object(id = 1092628564324659290)
 
-MAIN_COLOR = discord.Color.from_rgb(210, 43, 43)
+MAIN_COLOR = discord.Color.from_rgb(255, 46, 0)
 ERROR_COLOR = discord.Color.red()
 SUCCESS_COLOR = discord.Color.green()
 
